@@ -30,7 +30,8 @@ RECEIPT_TOOL = {
             "payee_raw": {"type": "string", "description": "店名。印字のまま。推測で補完しない"},
             "date": {"type": ["string", "null"], "description": "YYYY-MM-DD。読めなければ null"},
             "total": {"type": ["integer", "null"], "description": "合計金額(円)。読めなければ null"},
-            "tax": {"type": ["integer", "null"], "description": "税額(円)"},
+            "tax": {"type": ["integer", "null"],
+                    "description": "消費税額の合計(円)。8%と10%が分かれていれば合算する"},
             "items": {
                 "type": "array",
                 "items": {
@@ -41,10 +42,13 @@ RECEIPT_TOOL = {
                     },
                     "required": ["name", "amount"],
                 },
-                "description": "明細行。読み取れた分だけ。無理に埋めない",
+                "description": ("購入した商品の行だけ。読み取れた分だけ。無理に埋めない。"
+                                "小計・税額・合計・値引き・ポイント・支払いの行は含めない。"
+                                "金額は印字のまま(税抜表示ならその金額)"),
             },
             "payment_method": {"type": ["string", "null"]},
-            "notes": {"type": "string", "description": "かすれ・不明瞭など読み取り上の注意"},
+            "notes": {"type": "string",
+                      "description": "かすれ・不明瞭など読み取り上の注意。個人名・カード番号・会員番号は書かない"},
         },
         "required": ["payee_raw", "date", "total"],
     },
@@ -54,6 +58,8 @@ SYSTEM = (
     "あなたはレシート読み取り係です。画像に印字されている内容だけを読み取り、"
     "record_receipt ツールで記録してください。読めない項目は null にしてください。"
     "推測で補完してはいけません。読み取りに不安がある箇所は notes に書いてください。"
+    "明細には購入した商品の行だけを入れ、小計・税・合計・ポイントなどの行は入れないでください。"
+    "係員や会員の氏名、カード番号・会員番号などの個人情報は、どの項目にも書かないでください。"
 )
 
 

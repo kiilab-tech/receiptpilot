@@ -60,11 +60,13 @@ def judge(record: Record, extraction: Extraction, rule_hit: bool,
     # --- 検算 ---
     m = extraction.sum_matches_total()
     if m is False:
+        tax = f" (税{extraction.tax})" if extraction.tax is not None else ""
         reasons.append(
-            f"検算不一致: 明細計{extraction.items_sum()} != 合計{extraction.total}")
+            f"検算不一致: 明細計{extraction.items_sum()}{tax} != 合計{extraction.total}")
         return Judgement("review", reasons)
     if m is True:
-        reasons.append("検算一致")
+        reasons.append("検算一致(外税: 明細計+税=合計)" if extraction.is_tax_exclusive()
+                       else "検算一致")
     else:
         reasons.append("明細なし(検算スキップ)")
 

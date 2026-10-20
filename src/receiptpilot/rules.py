@@ -13,9 +13,15 @@ from pathlib import Path
 
 import yaml
 
+# 見た目が同じハイフン類(‐ ‑ ‒ – — ― −)。NFKC では揃わないので ASCII の '-' に寄せる。
+# 実物レシートでAIが「セブン‐イレブン」(U+2010)と返し、ルールに当たらなかった(M1)。
+# 長音記号「ー」は別物なので含めない。
+_DASHES = str.maketrans({c: "-" for c in "‐‑‒–—―−"})
+
+
 def normalize_text(s: str) -> str:
-    """全半角・大小文字ゆらぎの正規化。突合前に必ず通す。"""
-    s = unicodedata.normalize("NFKC", s)
+    """全半角・大小文字・ハイフン類のゆらぎの正規化。突合前に必ず通す。"""
+    s = unicodedata.normalize("NFKC", s).translate(_DASHES)
     return s.strip().lower()
 
 

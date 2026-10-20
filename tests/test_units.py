@@ -185,3 +185,38 @@ def test_csv_has_bom_and_neutralizes_formula_like_payee(tmp_path):
     raw = path.read_bytes()
     assert raw.startswith(b"\xef\xbb\xbf") and not rejected
     assert "'=HYPERLINK" in raw.decode("utf-8-sig")
+
+
+# --- M1(実物レシート)で見つかった問題の再発防止 -----------------------------
+
+@pytest.mark.parametrize("dash", ["‐", "‑", "–", "—", "−", "－"])
+def test_rule_matches_even_if_ai_returns_another_hyphen(dash):
+    rules = PayeeRules([{"pattern": "セブン-イレブン", "match": "partial", "category": "食費"}])
+    assert rules.match(f"セブン{dash}イレブン 中央町店").category == "食費"
+
+
+def test_long_vowel_mark_is_not_turned_into_hyphen():
+    assert normalize_text("コーナン") == "コーナン"
+
+
+def test_tax_exclusive_receipt_passes_sum_check():
+    # 外税: 明細は税抜(288) + 税(23) = 合計(311)。セブン-イレブンの実物レシート
+    rec, ex = make(311, items=[LineItem("紅茶", 170), LineItem("デニッシュ", 118)])
+    ex.tax = 23
+    j = judge(rec, ex, rule_hit=True, today=TODAY)
+    assert j.status == "confirmed" and "外税" in j.reasons[0]
+
+
+def test_tax_exclusive_off_by_one_yen_is_still_review():
+    rec, ex = make(312, items=[LineItem("紅茶", 170), LineItem("デニッシュ", 118)])
+    ex.tax = 23
+    j = judge(rec, ex, rule_hit=True, today=TODAY)
+    assert j.status == "review" and "検算不一致" in j.reasons[0]
+
+
+def test_subtotal_lines_mixed_into_items_go_to_review():
+    # AIが小計・税の行まで明細に入れた場合(トライアルの実物レシート)は安全側へ
+    rec, ex = make(4347, items=[LineItem("天津飯", 368), LineItem("小計", 3986),
+                                LineItem("8%外税", 144)])
+    ex.tax = 361
+    assert judge(rec, ex, rule_hit=True, today=TODAY).status == "review"

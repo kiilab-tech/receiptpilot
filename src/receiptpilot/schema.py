@@ -41,11 +41,21 @@ class Extraction:
         return sum(i.amount for i in self.items)
 
     def sum_matches_total(self) -> Optional[bool]:
-        """検算: 明細合計と合計の突合。明細が無ければ None(判定不能)。"""
+        """検算: 明細合計と合計の突合。明細が無ければ None(判定不能)。
+
+        内税: 明細計 == 合計 / 外税: 明細計 + 税額 == 合計(明細が税抜で印字される)。
+        どちらも1円単位の完全一致のみ。実物レシートは外税が多かった(M1: 4枚中3枚)。
+        """
         s = self.items_sum()
         if s is None or self.total is None:
             return None
-        return s == self.total
+        return s == self.total or (self.tax is not None and s + self.tax == self.total)
+
+    def is_tax_exclusive(self) -> bool:
+        """外税として検算が合ったか(判定理由の表示用)。"""
+        s = self.items_sum()
+        return (s is not None and self.total is not None and self.tax is not None
+                and s != self.total and s + self.tax == self.total)
 
 
 @dataclass
