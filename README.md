@@ -5,10 +5,13 @@
 [![test](https://github.com/kiilab-tech/receiptpilot/actions/workflows/test.yml/badge.svg)](https://github.com/kiilab-tech/receiptpilot/actions/workflows/test.yml)
 ![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB)
 ![Claude API](https://img.shields.io/badge/Claude%20API-Vision-D97757)
+[![ブラウザで試す](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://receiptpilot-demo.streamlit.app)
 
 iPhoneで撮ったレシートを Claude API(画像を読めるAI)で読み取ります。そのうえで
 **「自分で決めたルール」と「金額」**から、**自動で確定してよいもの**と**人が確認すべきもの**を振り分けます。
 確認画面で直した結果はルールとして育つので、使うほど確認の手間が減っていきます。
+
+**▶ インストールなしで試せます: [https://receiptpilot-demo.streamlit.app](https://receiptpilot-demo.streamlit.app)**(架空レシートのお試し版)
 
 ![確認画面: 原本画像・判定理由・読み取った明細を並べて、人が確認してから確定する](docs/images/review-screen.png)
 
@@ -31,7 +34,7 @@ iPhoneで撮ったレシートを Claude API(画像を読めるAI)で読み取�
 本物のレシートの読み取り(写真の取り込み・AI)は扱いません(レシートの画像を外部のサーバーに置かないため)。
 要件は [docs/Web版要件定義.md](docs/Web版要件定義.md)。
 
-- 公開URL: (公開後に記載)
+- **https://receiptpilot-demo.streamlit.app**
 - しばらく誰も開いていないと休止します。「起動」ボタンが出たら押して、30秒ほど待ってください
 
 ## Mac で使う(ターミナル不要)

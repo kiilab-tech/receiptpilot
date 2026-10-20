@@ -8,6 +8,7 @@
   - 扱うのは**架空レシートだけ**。本物のレシート・APIキー・AI の読み取りは扱わない
     (「本物のレシートは手元の Mac だけで処理する」という原則は変えない)
   - 公開先: Streamlit Community Cloud(無料。GitHub の公開リポジトリから配信)
+  - **公開済み(2026-10-20): https://receiptpilot-demo.streamlit.app**(Main file: app/web_demo.py、Python 3.12、kiilab-tech の GitHub で配信)。外部からの表示・確認ページでの確定・設定ページが出ないことを確認済み
 
 ---
 
