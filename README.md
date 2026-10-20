@@ -57,7 +57,7 @@ RECEIPTPILOT_DATA=data/demo RECEIPTPILOT_EXTRACTOR=mock streamlit run app/stream
 ## 仕組み
 
 ```mermaid
-flowchart LR
+flowchart TD
     A[📱 iPhoneで撮影] --> B[inbox]
     B --> C["抽出<br/>Claude API<br/>(型を固定して出力)"]
     C --> D["自分ルール<br/>店名→費目"]
