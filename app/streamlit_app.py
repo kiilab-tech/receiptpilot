@@ -1,6 +1,8 @@
 """ReceiptPilot 画面(FR-8 / docs/UI要件定義.md)。
 
 起動: streamlit run app/streamlit_app.py
+Web お試し版(docs/Web版要件定義.md)は app/web_demo.py から、環境変数
+RECEIPTPILOT_WEB_DEMO=1 で同じ画面を「架空レシートだけ・訪問者ごとに一時データ」で動かす。
 ターミナルを使わない人向けに、取り込み・読み取り・確認・出力・ルール・設定を
 すべて画面から行えるようにしている。ページ構成:
   読み取り / 確認 / 一覧・出力 / 自分ルール / 設定
@@ -11,7 +13,9 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
+import time
 from datetime import date as _date
 from pathlib import Path
 
@@ -24,10 +28,11 @@ import yaml
 from receiptpilot import credentials, settings
 from receiptpilot.adapters import FreeeAdapter, KakeiboCsvAdapter
 from receiptpilot.demo import demo_paths, reset_demo
+from receiptpilot.explain import explain
 from receiptpilot.extract import MODEL_CHOICES, ClaudeExtractor, MockExtractor, check_api_key, prepare_image
 from receiptpilot.intake import MAX_FILES, accept_uploads
 from receiptpilot.learn import Learner
-from receiptpilot.paths import get_paths
+from receiptpilot.paths import Paths, get_paths
 from receiptpilot.pipeline import confirm_record, pending_images, process_inbox
 from receiptpilot.rules import PayeeRules
 from receiptpilot.store import Store
@@ -35,13 +40,67 @@ from receiptpilot.store import Store
 st.set_page_config(page_title="ReceiptPilot", page_icon="🧾", layout="wide")
 ss = st.session_state
 
+# Mac アプリとして起動したときだけ: 長時間さわられなければ自動で止まる(閉じ忘れ対策 R19)
+IDLE_EXIT_MIN = int(os.environ.get("RECEIPTPILOT_IDLE_EXIT_MIN") or 0)
+
+
+@st.cache_resource
+def _idle_watchdog() -> dict:
+    state = {"last": time.time()}
+
+    def loop() -> None:
+        while True:
+            time.sleep(60)
+            if time.time() - state["last"] > IDLE_EXIT_MIN * 60:
+                os._exit(0)
+
+    threading.Thread(target=loop, daemon=True).start()
+    return state
+
+
+if IDLE_EXIT_MIN > 0:
+    _idle_watchdog()["last"] = time.time()
+
 # ------------------------------------------------------------------ 共通の状態
-base = get_paths()
+# Web お試し版: 写真の取り込み・AI・APIキー・終了は出さず、訪問者ごとの一時フォルダで動かす
+WEB_DEMO = os.environ.get("RECEIPTPILOT_WEB_DEMO") == "1"
+WEB_ROOT = Path(tempfile.gettempdir()) / "receiptpilot-web"
+REPO_URL = "https://github.com/kiilab-tech/receiptpilot"
+
+
+def _web_session_paths() -> Paths:
+    """訪問者(セッション)ごとの一時フォルダ。6時間以上たった古いものは消す(W5, W6)。"""
+    if "web_dir" not in ss:
+        WEB_ROOT.mkdir(parents=True, exist_ok=True)
+        cutoff = time.time() - 6 * 3600
+        for d in WEB_ROOT.iterdir():
+            try:
+                if d.stat().st_mtime < cutoff:
+                    shutil.rmtree(d, ignore_errors=True)
+            except OSError:
+                pass
+        ss["web_dir"] = tempfile.mkdtemp(dir=WEB_ROOT)
+    return Paths(Path(ss["web_dir"]))
+
+
+base = _web_session_paths() if WEB_DEMO else get_paths()
 conf = settings.load(base.data)
 
+def _on_demo_toggle() -> None:
+    """お試しモードをオンにするたびに、架空レシートを最初の状態に戻す(何度でも最初から試せる)。"""
+    if ss.get("demo"):
+        reset_demo(demo_paths(base))
+
+
 with st.sidebar:
-    demo = st.toggle("お試しモード", key="demo",
-                     help="架空のレシートで操作を試せます。APIキーは不要で、本番のデータには影響しません")
+    if WEB_DEMO:
+        demo = True
+        st.info("**Web お試し版**です。架空のレシートで操作を体験できます。"
+                "入力した内容は、この画面を閉じると消えます。")
+    else:
+        demo = st.toggle("お試しモード", key="demo", on_change=_on_demo_toggle,
+                         help="架空のレシートで操作を試せます。オンにするたびに最初の状態から始まります。"
+                              "APIキーは不要で、本番のデータには影響しません")
 
 paths = demo_paths(base) if demo else base
 if demo and not paths.store.exists():
@@ -113,15 +172,29 @@ def show_flash() -> None:
 
 # ------------------------------------------------------------------ ページ
 def page_read():
-    st.title("📥 レシートを読み取る")
+    st.title("🧾 ReceiptPilot Web お試し版" if WEB_DEMO else "📥 レシートを読み取る")
     show_flash()
     if store.recovered_lines:
         st.warning(f"保存データに壊れた行が{store.recovered_lines}行あったため、取り除いて退避しました"
                    "(Mac が処理中に止まった可能性があります)。他のデータは無事です。")
 
+    if WEB_DEMO:
+        st.info(
+            "**Web お試し版**へようこそ。架空のレシート7枚を、AI が読み取り済みの状態にしてあります。\n\n"
+            "1. **確認** ページで、自動で確定できなかったレシートを、原本と見比べて確定してみてください\n"
+            "2. 「ホームセンターみどり」を2回確定すると、**自分ルール** ページにルール候補が出ます\n"
+            "3. **一覧・出力** ページで、家計簿のCSVをダウンロードできます\n\n"
+            "本物のレシートの読み取り(写真の取り込み・AI)は、手元の Mac で動かす **Mac 版** で行います。"
+            f"レシートの画像を外部のサーバーに置かないためです。詳しくは [GitHub]({REPO_URL}) をご覧ください。")
+        st.page_link(PAGES["review"], label="確認ページへ進む", icon="✅")
+        if st.button("最初の状態に戻す"):
+            reset_demo(paths)
+            st.rerun()
+        return
     if demo:
         st.info("**お試しモード**です。架空のレシート7枚が読み取り済みになっています。"
-                "「確認」ページで、要確認のレシートを確定してみてください。")
+                "「確認」ページで、要確認のレシートを確定してみてください。"
+                "(お試しモードをオンにするたびに、最初の状態から始まります)")
         if st.button("お試しデータを最初の状態に戻す"):
             reset_demo(paths)
             st.rerun()
@@ -227,10 +300,12 @@ def page_review():
             col_img, col_form = st.columns([1, 2])
             show_image(col_img, r.source_image)
             with col_form:
-                st.warning("確認が必要な理由: " + " / ".join(r.reasons))
+                for exp in explain(r):
+                    st.warning(f"**{exp.title}**\n\n{exp.advice}")
                 if r.extraction and r.extraction.items:
                     st.caption("読み取った明細: " + "、".join(
                         f"{it.name} ¥{it.amount:,}" for it in r.extraction.items))
+                st.caption("判定の記録(参考): " + " / ".join(r.reasons))
                 payee = st.text_input("店名", value=r.payee, key=f"payee_{r.image_hash}")
                 date = st.text_input("日付(例: 2026-10-20)", value=r.date or "",
                                      key=f"date_{r.image_hash}")
@@ -417,12 +492,15 @@ def page_settings():
 
 
 PAGES = {
-    "read": st.Page(page_read, title="読み取り", icon="📥", url_path="read", default=True),
+    "read": st.Page(page_read, title="はじめに" if WEB_DEMO else "読み取り",
+                    icon="🏠" if WEB_DEMO else "📥", url_path="read", default=True),
     "review": st.Page(page_review, title=f"確認({len(reviews)})", icon="✅", url_path="review"),
     "list": st.Page(page_list, title="一覧・出力", icon="📒", url_path="list"),
     "rules": st.Page(page_rules, title="自分ルール", icon="📏", url_path="rules"),
     "settings": st.Page(page_settings, title="設定", icon="⚙️", url_path="settings"),
 }
+if WEB_DEMO:  # APIキー・データの保存場所は Web お試し版では扱わない(W3, W9)
+    PAGES.pop("settings")
 
 # ------------------------------------------------------------------ サイドバー
 with st.sidebar:
@@ -432,7 +510,7 @@ with st.sidebar:
     c2.metric("確認待ち", s["review"])
     st.caption(f"自動で確定した割合: {s['auto_confirm_rate']:.0%}")
     st.divider()
-    if st.button("終了する", help="ReceiptPilot を終了します。次に使うときは、もう一度アプリを開いてください"):
+    if not WEB_DEMO and st.button("終了する", help="ReceiptPilot を終了します。次に使うときは、もう一度アプリを開いてください"):
         ss["quit"] = True
 
 if ss.get("quit"):

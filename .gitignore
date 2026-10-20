@@ -10,3 +10,5 @@ private/
 .pytest_cache/
 .DS_Store
 .claude/
+build/
+dist/

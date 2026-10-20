@@ -24,8 +24,12 @@ python3 run.py demo                 # 架空レシートでデモ環境 data/dem
 python3 run.py process              # inbox処理(APIキーあれば実API、なければMock)
 streamlit run app/streamlit_app.py  # 確認UI
 python3 run.py export kakeibo|gas|freee
+bash macos/build.sh                 # Mac アプリを作る(配布用は dist/ReceiptPilot-<版>.dmg、組み立て途中は build/app.noindex)
 ```
+- アプリの版は macos/VERSION。dist/ と build/ はコミットしない(.gitignore済み)
+- アプリには Python とライブラリを丸ごと同梱する(macOS 13・arm64 向けの配布物だけを選ぶ)。requirements.txt を変えたら build.sh で作り直し、空のホームで起動確認する
 デモのUI: `streamlit run app/streamlit_app.py` → サイドバーの「お試しモード」をオン
+Web お試し版: `streamlit run app/web_demo.py`(Streamlit Community Cloud の Main file。要件は docs/Web版要件定義.md)。架空レシートだけ・訪問者ごとの一時フォルダ・アップロードと AI と APIキーは出さない
 画面の要件は docs/UI要件定義.md(R番号はテスト tests/test_ui_parts.py と対応)。
 `.streamlit/config.toml` で 127.0.0.1 待ち受けに固定している(外部公開しない。変更禁止)
 

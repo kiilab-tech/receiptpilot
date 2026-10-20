@@ -202,3 +202,119 @@ def test_quit_button_shows_goodbye_page():
     at = AppTest.from_file(APP, default_timeout=30).run()
     next(b for b in at.sidebar.button if b.label == "終了する").click().run()
     assert "終了しました" in _texts(at)
+
+
+# --- 判定理由の言い換え(一般の人向け) -------------------------------------------
+
+def _judged(total, items, tax=None, category="食費", rule_hit=True, d="2026-10-09"):
+    from datetime import date
+    from receiptpilot.explain import explain
+    from receiptpilot.judge import judge
+    from receiptpilot.schema import Extraction, LineItem
+    ex = Extraction(payee_raw="まちかどマート", date=d, total=total, tax=tax,
+                    items=[LineItem(n, a) for n, a in items])
+    r = Record(source_image="x.png", image_hash="h", payee_raw="まちかどマート", payee="まちかどマート",
+               date=d, total=total, category=category, extraction=ex)
+    j = judge(r, ex, rule_hit=rule_hit, today=date(2026, 10, 20))
+    r.status, r.reasons = j.status, j.reasons
+    return r, explain(r)
+
+
+def test_sum_mismatch_explains_both_causes_with_amounts():
+    r, exps = _judged(1000, [("乾電池", 500), ("ノート", 300)], tax=90)
+    assert r.status == "review" and len(exps) == 1
+    assert "800円" in exps[0].title and "1,000円" in exps[0].title
+    assert "写真と読み取り結果が違う" in exps[0].advice
+    assert "支払った合計金額のまま" in exps[0].advice
+
+
+@pytest.mark.parametrize("kwargs, word", [
+    (dict(total=500, items=[], category=None, rule_hit=False), "初めての店"),
+    (dict(total=34800, items=[]), "高額"),
+    (dict(total=24200, items=[]), "いつもの店"),
+    (dict(total=500, items=[], d="2026-12-01"), "未来"),
+    (dict(total=0, items=[]), "0円"),
+])
+def test_every_review_reason_has_plain_advice(kwargs, word):
+    r, exps = _judged(**kwargs)
+    assert r.status == "review"
+    assert any(word in e.title for e in exps)
+    assert all(e.advice for e in exps)
+    assert not any("!=" in e.title or "既知" in e.title for e in exps)  # 専門的な記号・用語を出さない
+
+
+def test_unknown_reason_still_gives_advice():
+    from receiptpilot.explain import explain
+    r = rec("h1")
+    r.reasons = ["想定外の理由"]
+    assert explain(r)[0].advice
+
+
+def test_demo_starts_fresh_every_time_it_is_turned_on(tmp_path):
+    """前回の続きが残っていても、お試しモードをオンにすると最初の状態に戻る。"""
+    from streamlit.testing.v1 import AppTest
+    from receiptpilot.demo import demo_paths, reset_demo
+    from receiptpilot.paths import get_paths
+    dp = demo_paths(get_paths())
+    reset_demo(dp)
+    store = Store(dp.store)
+    for r in list(store.load_all().values()):  # 前回すべて確定した状態を作る
+        r.status = "confirmed"
+        store.update(r)
+    assert Store(dp.store).stats()["review"] == 0
+
+    at = AppTest.from_file(APP, default_timeout=30).run()
+    at.sidebar.toggle(key="demo").set_value(True).run()
+    assert not at.exception
+    assert [m.value for m in at.sidebar.metric] == ["2", "5"]
+
+
+# --- Web お試し版(docs/Web版要件定義.md) ------------------------------------------
+
+WEB = str(ROOT / "app/web_demo.py")
+
+
+@pytest.fixture
+def web_tmp(monkeypatch, tmp_path):
+    import tempfile
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    yield tmp_path
+    monkeypatch.delenv("RECEIPTPILOT_WEB_DEMO", raising=False)
+
+
+def test_web_demo_opens_with_fake_receipts_and_hides_real_features(web_tmp):
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_file(WEB, default_timeout=30).run()
+    assert not at.exception
+    text = _texts(at)
+    assert "Web お試し版" in text and "Mac 版" in text
+    assert [m.value for m in at.sidebar.metric] == ["2", "5"]
+    labels = [b.label for b in at.button] + [b.label for b in at.sidebar.button]
+    assert "終了する" not in labels                           # W9
+    assert not at.get("file_uploader") and not at.toggle      # W1: 取り込みなし・切り替えなし
+
+
+def test_web_demo_visitors_do_not_share_data(web_tmp):
+    from streamlit.testing.v1 import AppTest
+    a = AppTest.from_file(WEB, default_timeout=30).run()
+    b = AppTest.from_file(WEB, default_timeout=30).run()
+    da, db = Path(a.session_state["web_dir"]), Path(b.session_state["web_dir"])
+    assert da != db                                            # W5
+    store = Store(Paths(da).data / "demo/store/records.jsonl")
+    for r in list(store.load_all().values()):                  # A さんが全部確定
+        r.status = "confirmed"
+        store.update(r)
+    assert [m.value for m in a.run().sidebar.metric] == ["7", "0"]
+    assert [m.value for m in b.run().sidebar.metric] == ["2", "5"]
+
+
+def test_web_demo_removes_old_visitor_folders(web_tmp):
+    import os
+    import time
+    from streamlit.testing.v1 import AppTest
+    old = web_tmp / "receiptpilot-web" / "old_visitor"
+    old.mkdir(parents=True)
+    past = time.time() - 7 * 3600
+    os.utime(old, (past, past))
+    AppTest.from_file(WEB, default_timeout=30).run()
+    assert not old.exists()                                    # W6
