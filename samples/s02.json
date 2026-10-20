@@ -1,0 +1,17 @@
+{
+  "payee_raw": "まちかどマート 北口店",
+  "date": "2026-10-03",
+  "total": 458,
+  "tax": 41,
+  "items": [
+    {
+      "name": "食パン 6枚",
+      "amount": 220
+    },
+    {
+      "name": "牛乳 1L",
+      "amount": 238
+    }
+  ],
+  "payment_method": "電子マネー"
+}

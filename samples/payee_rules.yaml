@@ -1,0 +1,14 @@
+# デモ用の自分ルール(架空の店名)。run.py demo がデモ用データ置き場へコピーする。
+rules:
+  - pattern: まちかどマート
+    match: prefix
+    category: 食費
+    brand: まちかどマート
+  - pattern: ハーモニー楽器
+    match: prefix
+    category: 趣味・楽器
+    brand: ハーモニー楽器
+  - pattern: でんしパーツ工房
+    match: prefix
+    category: 部品・材料
+    brand: でんしパーツ工房

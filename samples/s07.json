@@ -1,0 +1,17 @@
+{
+  "payee_raw": "ホームセンターみどり西店",
+  "date": "2026-10-12",
+  "total": 980,
+  "tax": 89,
+  "items": [
+    {
+      "name": "ガムテープ",
+      "amount": 398
+    },
+    {
+      "name": "軍手",
+      "amount": 582
+    }
+  ],
+  "payment_method": "現金"
+}

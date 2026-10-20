@@ -1,0 +1,103 @@
+"""自分ルール (FR-3, FR-4)。
+
+- payee_rules.yaml の対応付けは AI 推測より常に優先(原則2)。
+- ブランド抽出は「区切りがあるときだけ」支店名を落とす。
+  区切りが無ければ raw のまま(無理な分割は原理的に曖昧 → 安全側)。
+"""
+from __future__ import annotations
+
+import re
+import unicodedata
+from dataclasses import dataclass
+from pathlib import Path
+
+import yaml
+
+# 支店名を切り落とすときに使う区切り。これが「無ければ」何もしない。
+_DELIMS = re.compile(r"[ \u3000/／・‐\-−]|店\b")
+
+
+def normalize_text(s: str) -> str:
+    """全半角・大小文字ゆらぎの正規化。突合前に必ず通す。"""
+    s = unicodedata.normalize("NFKC", s)
+    return s.strip().lower()
+
+
+def brand_from_raw(payee_raw: str) -> str:
+    """区切りがある場合のみ先頭要素をブランドとして返す。無ければ raw のまま。
+
+    例: 'ローソン 駅前店' -> 'ローソン'
+        'セブン-イレブン中央町店' -> 区切り '-' はブランド名の一部になり得るため、
+        スペース等の明確な区切りが無ければ raw のまま返す(人に決めさせる)。
+    """
+    s = payee_raw.strip()
+    # スペース(全半角)での分割のみ「明確な区切り」とみなす
+    parts = re.split(r"[ \u3000]+", s)
+    if len(parts) >= 2:
+        return parts[0]
+    return s
+
+
+@dataclass
+class RuleHit:
+    category: str
+    brand: str | None
+    match_type: str  # exact / prefix / partial
+    pattern: str
+
+
+class PayeeRules:
+    """payee_rules.yaml:
+    rules:
+      - pattern: "ローソン"
+        match: prefix        # exact / prefix / partial (既定 partial)
+        category: "食費"
+        brand: "ローソン"     # 省略時 pattern
+    """
+
+    def __init__(self, rules: list[dict]):
+        self.rules = rules
+
+    @classmethod
+    def load(cls, path: str | Path) -> "PayeeRules":
+        p = Path(path)
+        if not p.exists():
+            return cls([])
+        d = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        return cls(d.get("rules", []))
+
+    def save(self, path: str | Path) -> None:
+        Path(path).write_text(
+            yaml.safe_dump({"rules": self.rules}, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+
+    def match(self, payee_raw: str) -> RuleHit | None:
+        """完全一致 > 前方一致 > 部分一致 の優先順で最初のヒットを返す。"""
+        target = normalize_text(payee_raw)
+        for want in ("exact", "prefix", "partial"):
+            for r in self.rules:
+                mt = r.get("match", "partial")
+                if mt != want:
+                    continue
+                pat = normalize_text(r["pattern"])
+                hit = (
+                    (want == "exact" and target == pat)
+                    or (want == "prefix" and target.startswith(pat))
+                    or (want == "partial" and pat in target)
+                )
+                if hit:
+                    return RuleHit(
+                        category=r["category"],
+                        brand=r.get("brand", r["pattern"]),
+                        match_type=want,
+                        pattern=r["pattern"],
+                    )
+        return None
+
+    def add(self, pattern: str, category: str, brand: str | None = None,
+            match: str = "partial") -> None:
+        self.rules.append({
+            "pattern": pattern, "match": match, "category": category,
+            **({"brand": brand} if brand else {}),
+        })

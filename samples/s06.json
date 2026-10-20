@@ -1,0 +1,17 @@
+{
+  "payee_raw": "まちかどマート 駅前店",
+  "date": "2026-10-09",
+  "total": 1000,
+  "tax": 90,
+  "items": [
+    {
+      "name": "乾電池 4本",
+      "amount": 500
+    },
+    {
+      "name": "ノート",
+      "amount": 300
+    }
+  ],
+  "payment_method": "現金"
+}

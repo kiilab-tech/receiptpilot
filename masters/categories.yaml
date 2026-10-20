@@ -1,0 +1,19 @@
+categories:
+  - name: 食費
+    freee_account: 福利厚生費   # B2B時は用途で見直す
+  - name: 日用品
+    freee_account: 消耗品費
+  - name: 交通費
+    freee_account: 旅費交通費
+  - name: 書籍・資料
+    freee_account: 新聞図書費
+  - name: 部品・材料
+    freee_account: 消耗品費
+  - name: 通信費
+    freee_account: 通信費
+  - name: 外食
+    freee_account: 接待交際費
+  - name: 医療
+    freee_account: null          # 家計簿専用(freee出力対象外)
+  - name: 趣味・楽器
+    freee_account: null

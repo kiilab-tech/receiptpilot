@@ -1,0 +1,17 @@
+rules:
+  - pattern: ローソン
+    match: partial
+    category: 食費
+    brand: ローソン
+  - pattern: セブン-イレブン
+    match: partial
+    category: 食費
+    brand: セブン-イレブン
+  - pattern: 秋月電子
+    match: partial
+    category: 部品・材料
+    brand: 秋月電子通商
+  - pattern: 島村楽器
+    match: partial
+    category: 趣味・楽器
+    brand: 島村楽器

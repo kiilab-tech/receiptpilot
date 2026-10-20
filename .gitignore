@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+data/inbox/*
+data/store/*
+data/out/*
+!data/inbox/.gitkeep
+data/demo/
+private/
+.pytest_cache/
+.DS_Store
+.claude/

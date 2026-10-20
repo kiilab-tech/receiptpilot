@@ -1,0 +1,17 @@
+{
+  "payee_raw": "ホームセンターみどり中央店",
+  "date": "2026-10-06",
+  "total": 1628,
+  "tax": 148,
+  "items": [
+    {
+      "name": "LED電球",
+      "amount": 748
+    },
+    {
+      "name": "結束バンド",
+      "amount": 880
+    }
+  ],
+  "payment_method": "現金"
+}

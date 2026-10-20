@@ -1,0 +1,21 @@
+{
+  "payee_raw": "まちかどマート 駅前店",
+  "date": "2026-10-01",
+  "total": 788,
+  "tax": 71,
+  "items": [
+    {
+      "name": "おにぎり 鮭",
+      "amount": 150
+    },
+    {
+      "name": "緑茶 500ml",
+      "amount": 140
+    },
+    {
+      "name": "幕の内弁当",
+      "amount": 498
+    }
+  ],
+  "payment_method": "現金"
+}
