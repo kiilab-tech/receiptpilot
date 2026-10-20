@@ -1,4 +1,4 @@
-anthropic>=0.40
+anthropic>=0.40,<1   # 1.x は破壊的変更あり(httpx2 等)。動作確認してから上げる
 streamlit>=1.46
 pyyaml>=6.0
 pillow>=10.0
