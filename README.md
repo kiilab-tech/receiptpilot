@@ -11,7 +11,8 @@ iPhoneで撮ったレシートを Claude API(画像を読めるAI)で読み取�
 **「自分で決めたルール」と「金額」**から、**自動で確定してよいもの**と**人が確認すべきもの**を振り分けます。
 確認画面で直した結果はルールとして育つので、使うほど確認の手間が減っていきます。
 
-**▶ インストールなしで試せます: [https://receiptpilot-demo.streamlit.app](https://receiptpilot-demo.streamlit.app)**(架空レシートのお試し版)
+**▶ インストールなしで試せます: [https://receiptpilot-demo.streamlit.app](https://receiptpilot-demo.streamlit.app)**(架空レシートのお試し版)  
+**⬇ Mac 版(ダブルクリックで起動): [ダウンロード](https://github.com/kiilab-tech/receiptpilot/releases/latest)**
 
 ![確認画面: 原本画像・判定理由・読み取った明細を並べて、人が確認してから確定する](docs/images/review-screen.png)
 
@@ -38,6 +39,8 @@ iPhoneで撮ったレシートを Claude API(画像を読めるAI)で読み取�
 - しばらく誰も開いていないと休止します。「起動」ボタンが出たら押して、30秒ほど待ってください
 
 ## Mac で使う(ターミナル不要)
+
+**⬇ ダウンロード: [最新版の ReceiptPilot-<版>.dmg](https://github.com/kiilab-tech/receiptpilot/releases/latest)**(リリースページの「Assets」から。約176MB)
 
 `ReceiptPilot-<版>.dmg` を開き、アプリを「アプリケーション」へドラッグして、ダブルクリックするだけです。
 Python などのインストールは要りません(Apple シリコンの Mac・macOS 13 以降)。
