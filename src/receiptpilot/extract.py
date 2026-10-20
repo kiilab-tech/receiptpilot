@@ -123,6 +123,50 @@ class ClaudeExtractor:
         )
 
 
+# 画面で選べるモデル(表示名, モデルID, 1枚あたりの費用の目安・円)。
+# 目安は 長辺1568pxの画像1枚 + 出力約500トークン、1ドル=150円で概算。
+MODEL_CHOICES = [
+    ("標準(おすすめ)", "claude-sonnet-4-6", 3),
+    ("低コスト", "claude-haiku-4-5", 1),
+]
+
+
+def describe_error(e: Exception) -> str:
+    """利用者向けの日本語のエラー説明(UI要件 R4)。英語の原文は括弧で添える。"""
+    import anthropic
+    msg = str(e)
+    if isinstance(e, anthropic.AuthenticationError):
+        text = "APIキーが正しくありません。設定画面でキーを確認してください"
+    elif isinstance(e, anthropic.PermissionDeniedError):
+        text = "このAPIキーでは利用できません。Claude Console でキーの権限を確認してください"
+    elif isinstance(e, anthropic.BadRequestError) and "credit balance" in msg.lower():
+        text = "APIの残高が不足しています。Claude Console の Billing でチャージしてください"
+    elif isinstance(e, anthropic.NotFoundError):
+        text = "指定したモデルが見つかりません。設定画面でモデルを選び直してください"
+    elif isinstance(e, anthropic.RateLimitError):
+        text = "短時間に使いすぎています。1分ほど待ってから、もう一度読み取ってください"
+    elif isinstance(e, (anthropic.OverloadedError, anthropic.InternalServerError)):
+        text = "AIのサービスが混み合っています。少し待ってから、もう一度読み取ってください"
+    elif isinstance(e, (anthropic.APIConnectionError, anthropic.APITimeoutError)):
+        text = "インターネットに接続できません。接続を確認して、もう一度読み取ってください"
+    elif isinstance(e, (OSError, ValueError)) and "image" in msg.lower():
+        text = "画像を開けませんでした。写真を撮り直して入れ直してください"
+    else:
+        text = "読み取りに失敗しました。もう一度読み取ってください"
+    return f"{text}({type(e).__name__})"
+
+
+def check_api_key(api_key: str, model: str = DEFAULT_MODEL) -> str | None:
+    """APIキーで実際に接続できるか確かめる。問題なければ None、あれば日本語の説明。
+    モデル情報の取得だけを行うので、読み取りの費用はかからない。"""
+    from anthropic import Anthropic
+    try:
+        Anthropic(api_key=api_key, max_retries=0, timeout=20).models.retrieve(model)
+    except Exception as e:  # noqa: BLE001
+        return describe_error(e)
+    return None
+
+
 class MockExtractor:
     """オフライン検証用。画像と同名の .json (例: r001.jpg → r001.json) を読む。"""
 

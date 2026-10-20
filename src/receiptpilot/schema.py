@@ -12,7 +12,7 @@ import json
 from dataclasses import dataclass, field, asdict
 from typing import Literal, Optional
 
-Status = Literal["confirmed", "review", "manual"]
+Status = Literal["confirmed", "review", "manual", "deleted"]
 Origin = Literal["extractor", "rule", "human"]
 
 

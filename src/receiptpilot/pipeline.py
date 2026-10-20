@@ -8,8 +8,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Callable
 
-from .extract import Extractor
+from .extract import Extractor, describe_error
 from .judge import judge
 from .rules import PayeeRules, brand_from_raw
 from .schema import Record, file_hash
@@ -28,12 +29,30 @@ def guess_category_by_ai(extraction) -> str | None:
     return None
 
 
+def pending_images(inbox: str | Path, store: Store) -> list[tuple[Path, str]]:
+    """inbox のうち、まだ保存されていない画像の (パス, ハッシュ) 一覧。"""
+    inbox = Path(inbox)
+    if not inbox.exists():
+        return []
+    seen = store.load_all()
+    out = []
+    for p in sorted(inbox.iterdir()):
+        if p.suffix.lower() not in IMAGE_EXTS:
+            continue
+        h = file_hash(str(p))
+        if h not in seen:
+            out.append((p, h))
+            seen[h] = None  # 同じ内容のファイルが2つあっても1回だけ処理する
+    return out
+
+
 def process_inbox(
     inbox: str | Path,
     store: Store,
     rules: PayeeRules,
     extractor: Extractor,
     errors: list[str] | None = None,
+    on_progress: Callable[[int, int, str], None] | None = None,
 ) -> list[Record]:
     """inbox の未処理画像を処理して保存。処理した Record 一覧を返す。
 
@@ -41,18 +60,15 @@ def process_inbox(
     errors に理由を積む(保存しないので次回の process で再挑戦される)。
     """
     done: list[Record] = []
-    for p in sorted(Path(inbox).iterdir()):
-        if p.suffix.lower() not in IMAGE_EXTS:
-            continue
-        h = file_hash(str(p))
-        if store.seen(h):
-            continue
-
+    todo = pending_images(inbox, store)
+    for i, (p, h) in enumerate(todo):
+        if on_progress:
+            on_progress(i, len(todo), p.name)
         try:
             ex = extractor.extract(str(p))
         except Exception as e:  # noqa: BLE001 — 1枚の失敗でバッチを止めない
             if errors is not None:
-                errors.append(f"{p.name}: 抽出失敗 ({type(e).__name__}: {e})")
+                errors.append(f"{p.name}: {describe_error(e)}")
             continue
 
         hit = rules.match(ex.payee_raw)

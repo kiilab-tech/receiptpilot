@@ -1,0 +1,16 @@
+# 自分の Mac からだけ見えるようにする(同じ Wi-Fi の他人にレシートを見せない。UI要件 R18)
+[server]
+address = "127.0.0.1"
+headless = true
+maxUploadSize = 20
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"
+primaryColor = "#2f7d5b"
+
+[client]
+# 右上の「Deploy」などの開発者向けメニューを隠す(一般の人が迷わないように)
+toolbarMode = "minimal"

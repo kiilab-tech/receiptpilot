@@ -10,22 +10,19 @@
 
 データ置き場は環境変数 RECEIPTPILOT_DATA で切替(既定 data/)。
 """
-import os
-import shutil
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from receiptpilot.demo import demo_paths, reset_demo
 from receiptpilot.extract import get_extractor
 from receiptpilot.paths import get_paths
 from receiptpilot.pipeline import process_inbox
 from receiptpilot.rules import PayeeRules
 from receiptpilot.store import Store
 from receiptpilot.adapters import FreeeAdapter, GasSheetAdapter, KakeiboCsvAdapter
-
-DEMO_DIR = ROOT / "data/demo"
 
 
 def process(extractor_kind: str = "auto") -> None:
@@ -43,17 +40,9 @@ def process(extractor_kind: str = "auto") -> None:
 
 def demo() -> None:
     """架空レシート(samples/)で data/demo を作り直し、Mock抽出で処理する。"""
-    if DEMO_DIR.exists():
-        shutil.rmtree(DEMO_DIR)
-    inbox = DEMO_DIR / "inbox"
-    inbox.mkdir(parents=True)
-    for p in sorted((ROOT / "samples").glob("s*.*")):
-        shutil.copy(p, inbox / p.name)
-    shutil.copy(ROOT / "samples/payee_rules.yaml", DEMO_DIR / "payee_rules.yaml")
-    os.environ["RECEIPTPILOT_DATA"] = str(DEMO_DIR)
-    process("mock")
-    print("\n確認画面:  RECEIPTPILOT_DATA=data/demo RECEIPTPILOT_EXTRACTOR=mock "
-          "streamlit run app/streamlit_app.py")
+    for r in reset_demo(demo_paths(get_paths())):
+        print(f"{r.source_image}: {r.status:9s} {r.payee}  ¥{r.total}  {r.reasons}")
+    print("\n確認画面: streamlit run app/streamlit_app.py → サイドバーの「お試しモード」をオン")
 
 
 def main():

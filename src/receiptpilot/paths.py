@@ -40,6 +40,16 @@ class Paths:
         return local if local.exists() else ROOT / "masters/payee_rules.yaml"
 
     @property
+    def rules_writable(self) -> Path:
+        """画面からルールを保存する先。配布するアプリ本体(masters/)は書き換えない。"""
+        return self.data / "payee_rules.yaml"
+
+    @property
+    def trash(self) -> Path:
+        """削除したレシート画像の退避先(誤って消しても戻せる)。"""
+        return self.data / "trash"
+
+    @property
     def categories(self) -> Path:
         return ROOT / "masters/categories.yaml"
 

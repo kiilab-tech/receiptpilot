@@ -25,11 +25,14 @@ python3 run.py process              # inbox処理(APIキーあれば実API、な
 streamlit run app/streamlit_app.py  # 確認UI
 python3 run.py export kakeibo|gas|freee
 ```
-デモのUI: `RECEIPTPILOT_DATA=data/demo RECEIPTPILOT_EXTRACTOR=mock streamlit run app/streamlit_app.py`
+デモのUI: `streamlit run app/streamlit_app.py` → サイドバーの「お試しモード」をオン
+画面の要件は docs/UI要件定義.md(R番号はテスト tests/test_ui_parts.py と対応)。
+`.streamlit/config.toml` で 127.0.0.1 待ち受けに固定している(外部公開しない。変更禁止)
 
 ## 環境
-- Python 3.11+ / venv、依存: anthropic, streamlit, pyyaml, pillow, pillow-heif
-- APIキー: 環境変数 ANTHROPIC_API_KEY(実行するシェルで手動 export。ファイルや .zshrc に置かない)
+- Python 3.11+ / venv、依存: anthropic, streamlit, pyyaml, pillow, pillow-heif, keyring
+  - f文字列の中で同じ種類の引用符を入れ子にしない(3.11 で構文エラーになる)
+- APIキー: 画面からはキーチェーン(credentials.py)。CLI は環境変数 ANTHROPIC_API_KEY(優先)。ファイルや .zshrc に置かない
   - **未設定でもエラーにならず MockExtractor に落ちる**(extract.py の get_extractor)。
     実APIを使うつもりなら `echo $ANTHROPIC_API_KEY` で必ず確認すること
 - 抽出モデル: claude-sonnet-4-6(extract.py DEFAULT_MODEL。低コスト: claude-haiku-4-5)

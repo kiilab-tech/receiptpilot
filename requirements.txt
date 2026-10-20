@@ -1,5 +1,6 @@
 anthropic>=0.40
-streamlit>=1.38
+streamlit>=1.46
 pyyaml>=6.0
 pillow>=10.0
 pillow-heif>=0.16   # iPhoneのHEIC写真をそのまま読むため
+keyring>=25.0     # APIキーを Mac のキーチェーンに保存するため

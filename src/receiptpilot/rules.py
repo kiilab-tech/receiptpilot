@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 
+import os
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -69,10 +70,17 @@ class PayeeRules:
         return cls(d.get("rules", []))
 
     def save(self, path: str | Path) -> None:
-        Path(path).write_text(
+        """一時ファイルに書いてから置き換える(保存途中の中断でルールが消えない。UI要件 R11)。"""
+        p = Path(path)
+        tmp = p.with_suffix(".tmp")
+        tmp.write_text(
             yaml.safe_dump({"rules": self.rules}, allow_unicode=True, sort_keys=False),
             encoding="utf-8",
         )
+        os.replace(tmp, p)
+
+    def remove(self, pattern: str) -> None:
+        self.rules = [r for r in self.rules if r["pattern"] != pattern]
 
     def match(self, payee_raw: str) -> RuleHit | None:
         """完全一致 > 前方一致 > 部分一致 の優先順で最初のヒットを返す。"""
