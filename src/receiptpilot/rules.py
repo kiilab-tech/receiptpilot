@@ -1,8 +1,8 @@
 """自分ルール (FR-3, FR-4)。
 
 - payee_rules.yaml の対応付けは AI 推測より常に優先(原則2)。
-- ブランド抽出は「区切りがあるときだけ」支店名を落とす。
-  区切りが無ければ raw のまま(無理な分割は原理的に曖昧 → 安全側)。
+- ブランド抽出は「スペースがあるときだけ」支店名を落とす(FR-3)。
+  無ければ raw のまま(記号での分割は原理的に曖昧 → 安全側)。
 """
 from __future__ import annotations
 
@@ -12,10 +12,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
-
-# 支店名を切り落とすときに使う区切り。これが「無ければ」何もしない。
-_DELIMS = re.compile(r"[ \u3000/／・‐\-−]|店\b")
-
 
 def normalize_text(s: str) -> str:
     """全半角・大小文字ゆらぎの正規化。突合前に必ず通す。"""

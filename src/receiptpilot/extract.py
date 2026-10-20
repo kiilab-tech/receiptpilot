@@ -1,7 +1,7 @@
 """抽出 (FR-2)。
 
 - Claude API の tool 定義で型を強制する(自由文パースはしない)。
-- モデルは設定で切替。既定 claude-sonnet-4-6、低コスト claude-haiku-4-5。
+- モデルは DEFAULT_MODEL で切替。既定 claude-sonnet-4-6、低コスト claude-haiku-4-5。
 - 送信前に画像を整える(EXIF回転補正・長辺1568pxへ縮小・JPEG化)。
   iPhone写真(4032px・数MB・HEIC)をそのまま送るとサイズ上限で失敗するため。
 - MockExtractor はAPIキー不要。ファイル名に埋めたヒント、または隣接する
